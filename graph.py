@@ -1,16 +1,19 @@
-import networkx
+import networkx as nx
 
-from networkx.graph import DiGraph
+from typing import List
+from copy import deepcopy
+
 from networkx.algorithms.shortest_paths.unweighted import all_pairs_shortest_path_length
 from networkx.algorithms.operators import binary as binary_op
+from networkx.algorithms.shortest_paths.generic import shortest_path
 
 class Graph(object):
     def __init__(self, agraph=None, contraction=None):
-        if agraph is not None
-            self.g = DiGraph()
-        else:
-            assert isinstance(agraph, networkx.DiGraph), type(agraph)
+        if agraph is not None:
+            assert isinstance(agraph, nx.DiGraph), type(agraph)
             self.g = agraph
+        else:
+            self.g = nx.DiGraph()
 
         if contraction is not None:
             self.contraction = deepcopy(contraction)
@@ -31,11 +34,11 @@ class Graph(object):
 
     def set_edge_attr(self, u, v, **kwargs):
         for attr in kwargs:
-            networkx.set_edge_attributes(self.g, { (u, v) : kwargs[attr] }, attr)
+            nx.set_edge_attributes(self.g, { (u, v) : kwargs[attr] }, attr)
 
     def set_node_attr(self, u, **kwargs):
         for attr in kwargs:
-            networkx.set_node_attributes(self.g, { u : kwargs[attr] }, attr)
+            nx.set_node_attributes(self.g, { u : kwargs[attr] }, attr)
 
     def count_node_type(self, key='type'):
         c = Counter()
@@ -74,8 +77,16 @@ class Graph(object):
             self.adj_rev_ = dict(self.g.reverse().adj)
         return self.adj_rev_
 
+    def add_node(self, v):
+        self.g.add_node(v)
+        self.update()
+
+    def add_edge(self, u, v):
+        self.g.add_edge(u, v)
+        self.update()
+
     def update(self):
-        self.g.remove_edges_from(self.g.selfloop_edges())
+        self.g.remove_edges_from(nx.selfloop_edges(self.g))
         self.ls_ = None
         self.ls_rev_ = None
         self.adj_ = None
@@ -166,7 +177,7 @@ class Graph(object):
         neighbors = set([node])
         for i in range(dist):
             for n in list(neighbors):
-                for m in networkx.all_neighbors(self.g, n):
+                for m in nx.all_neighbors(self.g, n):
                     if type_blacklist is not None and self.get_node_attr(m, 'type') in type_blacklist:
                         continue
                     neighbors.add(m)
@@ -190,7 +201,6 @@ class Graph(object):
         return u in self.ls() and v in self.ls()[u]
 
     def get_path(self, u, v):
-        from networkx.algorithms.shortest_paths.generic import shortest_path
         nodes = shortest_path(self.g, u, v)
         edges = []
         if len(nodes) > 1:
@@ -262,7 +272,7 @@ class Graph(object):
         return Graph(config=self.config, agraph=self.g.subgraph(nodes).copy(), contraction=self.get_subcontraction(nodes))
 
     def weakly_connected_components(self):
-        return [ self.get_subgraph(nodes) for nodes in networkx.weakly_connected_components(self.g) ]
+        return [ self.get_subgraph(nodes) for nodes in nx.weakly_connected_components(self.g) ]
 
     def get_composed_contraction(self, other_contraction):
         ret = deepcopy(self.contraction)
