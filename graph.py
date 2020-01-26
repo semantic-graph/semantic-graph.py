@@ -81,6 +81,11 @@ class Graph(object):
         self.g.add_node(v)
         self.update()
 
+    def add_edges(self, uvs):
+        for u, v in uvs:
+            self.g.add_edge(u, v)
+        self.update()
+
     def add_edge(self, u, v):
         self.g.add_edge(u, v)
         self.update()
@@ -162,6 +167,24 @@ class Graph(object):
                     del self.contraction[n]
         self.update()
 
+    def remove_nodes_soft(self, nodes_to_kill):
+        ls_copy = self.ls()
+        for n in set(nodes_to_kill):
+            if n in self.nodes:
+                self.g.remove_node(n)
+                if n in self.contraction:
+                    del self.contraction[n]
+        for u in self.g.nodes:
+            for v in self.g.nodes:
+                if u == v:
+                    continue
+                if v in ls_copy[u]:
+                    self.g.add_edge(u, v)
+                    continue
+                if u in ls_copy[v]:
+                    self.g.add_edge(v, u)
+                    continue
+        self.update()
 
     def print_neighbors(self, node: str):
         print("Pred:")
