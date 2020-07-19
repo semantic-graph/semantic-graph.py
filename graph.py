@@ -23,7 +23,7 @@ class Graph(object):
         else:
             self.contraction = {}
 
-        self.update()
+        self.update__()
 
     def write_gist(self, gist_path: str):
         with open(gist_path, "w") as f:
@@ -82,18 +82,18 @@ class Graph(object):
 
     def add_node(self, v):
         self.g.add_node(v)
-        self.update()
+        self.update__()
 
     def add_edges(self, uvs):
         for u, v in uvs:
             self.g.add_edge(u, v)
-        self.update()
+        self.update__()
 
     def add_edge(self, u, v):
         self.g.add_edge(u, v)
-        self.update()
+        self.update__()
 
-    def update(self):
+    def update__(self):
         self.g.remove_edges_from(nx.selfloop_edges(self.g))
         self.ls_ = None
         self.ls_rev_ = None
@@ -160,7 +160,9 @@ class Graph(object):
             return attrs
         if attr_name in attrs:
             return attrs[attr_name]
-        raise NotImplementedError()
+        if attr_name == "type":
+            return self.get_edge_attr(u, v, "edge_type")
+        raise NotImplementedError(attr_name, attrs)
 
     def remove_nodes(self, nodes_to_kill):
         for n in set(nodes_to_kill):
@@ -168,7 +170,7 @@ class Graph(object):
                 self.g.remove_node(n)
                 if n in self.contraction:
                     del self.contraction[n]
-        self.update()
+        self.update__()
 
     def remove_nodes_soft(self, nodes_to_kill):
         ls_copy = self.ls()
@@ -187,7 +189,7 @@ class Graph(object):
                 if u in ls_copy[v]:
                     self.g.add_edge(v, u)
                     continue
-        self.update()
+        self.update__()
 
     def print_neighbors(self, node: str):
         print("Pred:")
@@ -319,7 +321,7 @@ class Graph(object):
                 self.g.add_node(new_node_name, domain="library", type=new_type)
             for op in nodes:
                 self.contract_node(new_node_name, op)
-            self.update()
+            self.update__()
             self.set_node_attr(new_node_name, type=new_type)
             self.remove_nodes([None])
             self.g.graph['graph'] = {}
