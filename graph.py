@@ -2,6 +2,9 @@ import networkx as nx
 
 from typing import List
 from copy import deepcopy
+from termcolor import colored, cprint
+from collections import Counter, OrderedDict
+import re
 
 from networkx.algorithms.shortest_paths.unweighted import all_pairs_shortest_path_length
 from networkx.algorithms.operators import binary as binary_op
@@ -198,7 +201,7 @@ class Graph(object):
         if node not in self.g.nodes:
             return []
         neighbors = set([node])
-        for i in range(dist):
+        for _ in range(dist):
             for n in list(neighbors):
                 for m in nx.all_neighbors(self.g, n):
                     if type_blacklist is not None and self.get_node_attr(m, 'type') in type_blacklist:
@@ -292,7 +295,7 @@ class Graph(object):
         return ret
 
     def get_subgraph(self, nodes):
-        return Graph(config=self.config, agraph=self.g.subgraph(nodes).copy(), contraction=self.get_subcontraction(nodes))
+        return Graph(agraph=self.g.subgraph(nodes).copy(), contraction=self.get_subcontraction(nodes))
 
     def weakly_connected_components(self):
         return [ self.get_subgraph(nodes) for nodes in nx.weakly_connected_components(self.g) ]
@@ -308,7 +311,7 @@ class Graph(object):
 
     def get_composed(self, other):
         # TODO: asssert same config
-        return Graph(config=self.config, agraph=binary_op.compose(self.g, other.g), contraction=self.get_composed_contraction(other.contraction))
+        return Graph(agraph=binary_op.compose(self.g, other.g), contraction=self.get_composed_contraction(other.contraction))
 
     def merge_nodes(self, nodes, new_node_name, new_type="merged"):
         if nodes:
@@ -330,3 +333,30 @@ class Graph(object):
                 candidates.append((na, nra, n.split("\n")[0]))
         for na, nra, node in sorted(candidates, key=lambda x:x[0]+x[1]):
             cprint("Fan-out: %s\tFan-in: %s\tNode: %s" % (na, nra, node), "red")
+
+def contracted_nodes(G, u, v, self_loops=True, add_contraction_field=True):
+    from itertools import chain
+    H = G.copy()
+    # edge code uses G.edges(v) instead of G.adj[v] to handle multiedges
+    if H.is_directed():
+        in_edges = ((w if w != v else u, u, d)
+                    for w, x, d in G.in_edges(v, data=True)
+                    if self_loops or w != u)
+        out_edges = ((u, w if w != v else u, d)
+                     for x, w, d in G.out_edges(v, data=True)
+                     if self_loops or w != u)
+        new_edges = chain(in_edges, out_edges)
+    else:
+        new_edges = ((u, w if w != v else u, d)
+                     for x, w, d in G.edges(v, data=True)
+                     if self_loops or w != u)
+    v_data = H.nodes[v]
+    H.remove_node(v)
+    H.add_edges_from(new_edges)
+
+    if add_contraction_field:
+        if 'contraction' in H.nodes[u]:
+            H.nodes[u]['contraction'][v] = v_data # type: ignore
+        else:
+            H.nodes[u]['contraction'] = {v: v_data}
+    return H
