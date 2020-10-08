@@ -236,6 +236,9 @@ class Graph(object):
                 edges.append(self.get_edge_attr(nodes[i], nodes[i+1]))
         return nodes, edges
 
+    def get_all_paths(self, u, v):
+        return nx.algorithms.simple_paths.all_simple_paths(self.g, u, v)
+
     def contract_node(self, src, dest):
         '''ONLY USE INTERNALLY!'''
         self.g = contracted_nodes(self.g, src, dest, add_contraction_field = False, self_loops=False)
